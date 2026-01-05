@@ -19,21 +19,16 @@ class WebsocketManager():
             
     
     async def send_notifications(self,user_id:str,message:dict):
-        if user_id in self.activae_connections:
-            websocket = self.actiave_connections[user_id]
+        if user_id in self.active_connections:
+            websocket = self.active_connections[user_id]
             try:
                 await websocket.send_json(message)
             except Exception as e:
-                self.disconnect(user_id)
+                await self.disconnect(user_id)
         
-    def _is_user_online(self, user_id:str):
+    def is_user_online(self, user_id:str):
         if user_id in self.active_connections:
             return True
         return False
-    
-    
-    
-    
-    
     
 manager = WebsocketManager()
