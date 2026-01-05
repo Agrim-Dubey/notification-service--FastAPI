@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from database import get_db
+from app.database import get_db
 import crud
 
 
@@ -19,14 +19,14 @@ async def get_unread_count(user_id:str,db:Session = Depends(get_db)):
 
 @router.put("/notifications/{id}/read")
 async def mark_as_read(notification_id:int,db:Session = Depends(get_db)):
-    notification = crud.mark_notification_as_read(db,id)
+    notification = crud.mark_notification_as_read(db,notification_id)
     if notification:
         return True
     raise HTTPException(status_code=404, detail="Notification is not found")
      
-@router.delete("/notificatrions/{id}")
-async def delete_notification(notification_id:int,db:Session= Depends(get_db))
-    notification = crud.delete_notification(db,id)
+@router.delete("/notifications/{id}")
+async def delete_notification(notification_id:int,db:Session= Depends(get_db)):
+    notification = crud.delete_notification(db,notification_id)
     if notification:
         return True
-    return HTTPException(status_code=404,detail="Notification not found for deletion")
+    raise HTTPException(status_code=404,detail="Notification not found for deletion")
