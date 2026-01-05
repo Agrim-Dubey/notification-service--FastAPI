@@ -1,37 +1,27 @@
-import pika
-import json
-import threading
-from app.notification_handler import process_notification_event
-from app.database import SessionLocal
+from sqlalchemy.orm import Session
+from app import crud, schemas
+from app.websocket_manager import manager
+import asyncio
 
-def callback(ch, method, properties, body):
-    event_data = json.loads(body)
-    db = SessionLocal()
+
+
+def process_notification_event( event_data:dict,db:Session):
+    notification = schemas.NotificationCreate(**event_data)
+    saved_notification = crud.create_notification(db,notification)
+    user_id= event_data['user_id']
+    if manager.is_user_online(user_id):
+        notification_message = {"id":saved_notification.id,
+                                "type":saved_notification.type,
+                                "from_user_name":saved_notification.from_user_name,
+                                "message":saved_notification.message,
+                                "data":saved_notification.data,
+                                "created_at":saved_notification.created_at.isoformat()}                         
+        
+        asyncio.run(manager.send_notification(user_id, notification_message))    
+    else:
+        print(f"user {user_id} is offline - notification saved inside the database for  now")
     
-    try:
-        process_notification_event(event_data, db)
-        ch.basic_ack(delivery_tag=method.delivery_tag)
+
+    if event_data["type"]=="project.invited":
+        print(f"will write this code in the later part")
         
-    except Exception as e:
-
-        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
-        
-    finally:
-        db.close()
-
-def start_rabbitmq_consumer():
-    connection = pika.BlockingConnection(
-        pika.ConnectionParameters(host='localhost')
-    )
-    channel = connection.channel()
-    channel.queue_declare(queue='notifications', durable=True)
-    channel.basic_consume(
-        queue='notifications',
-        on_message_callback=callback,
-        auto_ack=False
-    )
-    channel.start_consuming()
-
-def start_consumer_thread():
-    consumer_thread = threading.Thread(target=start_rabbitmq_consumer, daemon=True)
-    consumer_thread.start()
