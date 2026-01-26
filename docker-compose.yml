@@ -1,18 +1,15 @@
 version: "3.8"
 
 services:
-  db:
-    image: postgres:15-alpine
-    container_name: notification_dbdb
+  notification:
+    build: .
+    container_name: notification-service
     restart: unless-stopped
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-    ports:
-      - "5433:5433" 
-    volumes:
-     - db_data:/var/lib/postgresql/data
+      KAFKA_BOOTSTRAP_SERVERS: agile-kafka:9092
+    networks:
+      - shared-net
 
-volumes:
-  db_data:
+networks:
+  shared-net:
+    external: true
